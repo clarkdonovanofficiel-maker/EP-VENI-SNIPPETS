@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLARK DONOVAN · EP VENI</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #04060f;
+  --blue:     #00d4ff;
+  --blue2:    #0066ff;
+  --glow:     rgba(0,212,255,.18);
+  --white:    #ffffff;
+  --grey:     rgba(255,255,255,.45);
+  --card:     rgba(255,255,255,.03);
+  --border:   rgba(0,212,255,.12);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── CANVAS LASERS ── */
+#cv {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: .5;
+  pointer-events: none;
+}
+
+/* ── LAYOUT ── */
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* ── HERO ── */
+.hero {
+  padding: 60px 0 40px;
+  text-align: center;
+}
+
+.artist-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 5px;
+  color: var(--blue);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  opacity: .7;
+}
+
+.ep-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 20vw, 110px);
+  letter-spacing: 8px;
+  line-height: .9;
+  background: linear-gradient(160deg, #fff 30%, var(--blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+
+.ep-subtitle {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: var(--grey);
+  text-transform: uppercase;
+}
+
+.divider {
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  margin: 32px auto;
+}
+
+/* ── INTRO TEXT ── */
+.intro {
+  text-align: center;
+  font-size: 14px;
+  color: var(--grey);
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+
+/* ── TRACKS ── */
+.tracks-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: rgba(0,212,255,.4);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.track-card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 20px;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .3s;
+}
+
+.track-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--blue);
+  opacity: 0;
+  transition: opacity .3s;
+}
+
+.track-card.unlocked { border-color: rgba(0,212,255,.3); }
+.track-card.unlocked::before { opacity: 1; }
+.track-card.locked { opacity: .5; }
+.track-card.locked::before { background: var(--grey); }
+
+.track-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: rgba(0,212,255,.35);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.track-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 3px;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.track-card.unlocked .track-name { color: var(--blue); text-shadow: 0 0 30px rgba(0,212,255,.3); }
+
+.track-status {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--grey);
+  text-transform: uppercase;
+}
+
+.track-card.unlocked .track-status { color: rgba(0,212,255,.6); }
+
+/* Audio player */
+.audio-wrap {
+  margin-top: 14px;
+  display: none;
+}
+.track-card.unlocked .audio-wrap { display: block; }
+
+.play-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid rgba(0,212,255,.3);
+  color: var(--blue);
+  padding: 10px 18px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .3s;
+  width: 100%;
+  justify-content: center;
+}
+.play-btn:hover { background: rgba(0,212,255,.06); border-color: var(--blue); box-shadow: 0 0 20px rgba(0,212,255,.15); }
+.play-btn.playing { background: rgba(0,212,255,.08); border-color: var(--blue); }
+
+.play-icon { width: 14px; height: 14px; flex-shrink: 0; }
+
+.progress-bar {
+  height: 2px;
+  background: rgba(0,212,255,.1);
+  margin-top: 10px;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue2), var(--blue));
+  width: 0%;
+  transition: width .2s linear;
+  box-shadow: 0 0 8px var(--blue);
+}
+
+.timer-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: rgba(0,212,255,.3);
+  letter-spacing: 1px;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* Countdown */
+.countdown-wrap {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(0,0,0,.3);
+  display: none;
+}
+.track-card.locked .countdown-wrap { display: block; }
+
+.countdown-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,.2);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.countdown-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: rgba(0,212,255,.5);
+  letter-spacing: 1px;
+}
+
+/* ── INSCRIPTION FORM ── */
+.form-section {
+  margin-top: 40px;
+  border: 1px solid var(--border);
+  padding: 28px 24px;
+  background: var(--card);
+  position: relative;
+}
+
+.form-section::before {
+  content: '🔔';
+  position: absolute;
+  top: -14px;
+  left: 24px;
+  background: var(--bg);
+  padding: 0 8px;
+  font-size: 18px;
+}
+
+.form-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+
+.form-desc {
+  font-size: 12px;
+  color: var(--grey);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: rgba(0,212,255,.5);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--white);
+  padding: 12px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color .3s;
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+.form-input::placeholder { color: rgba(255,255,255,.2); }
+.form-input:focus { border-color: rgba(0,212,255,.4); box-shadow: 0 0 16px rgba(0,212,255,.08); }
+
+.contact-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.toggle-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: transparent;
+  color: var(--grey);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .3s;
+}
+.toggle-btn.active {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: rgba(0,212,255,.06);
+}
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--blue2), var(--blue));
+  border: none;
+  color: #000;
+  padding: 16px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.submit-btn:hover { opacity: .9; box-shadow: 0 0 30px rgba(0,212,255,.3); }
+.submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.success-msg {
+  display: none;
+  text-align: center;
+  padding: 20px;
+  border: 1px solid rgba(0,212,255,.3);
+  background: rgba(0,212,255,.04);
+}
+.success-msg.show { display: block; }
+.success-icon { font-size: 28px; margin-bottom: 8px; }
+.success-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: var(--blue);
+  margin-bottom: 6px;
+}
+.success-sub { font-size: 12px; color: var(--grey); }
+
+/* ── FOOTER ── */
+.footer {
+  text-align: center;
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+.footer-artist {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,.2);
+}
+.footer-ep {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: rgba(0,212,255,.2);
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="artist-tag">Clark Donovan</div>
+    <div class="ep-title">VENI</div>
+    <div class="ep-subtitle">EP · 24 Avril 2026</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <p class="intro">
+    Avant la sortie officielle de l'EP,<br>
+    découvre en avant-première les extraits<br>
+    de <strong style="color:var(--blue)">VENEZ DANSER</strong>, <strong style="color:var(--blue)">ÉTOILE</strong> et <strong style="color:var(--blue)">LELO TÉ</strong>.
+  </p>
+
+  <!-- TRACKS -->
+  <div class="tracks-label">Extraits avant-première</div>
+
+  <!-- TRACK 1 — VENEZ DANSER -->
+  <div class="track-card" id="card-0">
+    <div class="track-num">EXTRAIT 01</div>
+    <div class="track-name">VENEZ DANSER</div>
+    <div class="track-status" id="status-0">— Débloqué le 3 Avril 2026 —</div>
+    <div class="audio-wrap">
+      <button class="play-btn" id="btn-0" onclick="togglePlay(0, 'venez-danser-preview.mp3')">
+        <svg class="play-icon" id="icon-0" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 15,8 3,15"/></svg>
+        ÉCOUTER · 30 SEC
+      </button>
+      <div class="progress-bar"><div class="progress-fill" id="prog-0"></div></div>
+      <div class="timer-label" id="timer-0">0:00 / 0:30</div>
+    </div>
+    <div class="countdown-wrap">
+      <div class="countdown-label">Disponible dans</div>
+      <div class="countdown-val" id="cd-0">—</div>
+    </div>
+  </div>
+
+  <!-- TRACK 2 — ÉTOILE -->
+  <div class="track-card" id="card-1">
+    <div class="track-num">EXTRAIT 02</div>
+    <div class="track-name">ÉTOILE</div>
+    <div class="track-status" id="status-1">— Débloqué le 13 Avril 2026 —</div>
+    <div class="audio-wrap">
+      <button class="play-btn" id="btn-1" onclick="togglePlay(1, 'etoile-preview.mp3')">
+        <svg class="play-icon" id="icon-1" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 15,8 3,15"/></svg>
+        ÉCOUTER · 30 SEC
+      </button>
+      <div class="progress-bar"><div class="progress-fill" id="prog-1"></div></div>
+      <div class="timer-label" id="timer-1">0:00 / 0:30</div>
+    </div>
+    <div class="countdown-wrap">
+      <div class="countdown-label">Disponible dans</div>
+      <div class="countdown-val" id="cd-1">—</div>
+    </div>
+  </div>
+
+  <!-- TRACK 3 — LELO TÉ -->
+  <div class="track-card" id="card-2">
+    <div class="track-num">EXTRAIT 03</div>
+    <div class="track-name">LELO TÉ</div>
+    <div class="track-status" id="status-2">— Débloqué le 15 Avril 2026 —</div>
+    <div class="audio-wrap">
+      <button class="play-btn" id="btn-2" onclick="togglePlay(2, 'lelo-te-preview.mp3')">
+        <svg class="play-icon" id="icon-2" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 15,8 3,15"/></svg>
+        ÉCOUTER · 30 SEC
+      </button>
+      <div class="progress-bar"><div class="progress-fill" id="prog-2"></div></div>
+      <div class="timer-label" id="timer-2">0:00 / 0:30</div>
+    </div>
+    <div class="countdown-wrap">
+      <div class="countdown-label">Disponible dans</div>
+      <div class="countdown-val" id="cd-2">—</div>
+    </div>
+  </div>
+
+
+
+  <!-- QUIZ + INSCRIPTION -->
+  <div class="form-section" id="form-section" style="margin-top:10px;">
+    <div class="form-title">ÊTRE NOTIFIÉ</div>
+    <p class="form-desc">
+      Réponds aux 3 questions et inscris-toi pour recevoir une notification dès qu'un nouvel extrait est débloqué.
+    </p>
+
+    <div id="form-body">
+
+      <!-- QUIZ -->
+      <div id="quiz-section">
+        <div style="font-family:'Space Mono',monospace;font-size:8px;letter-spacing:3px;color:rgba(0,212,255,.4);text-transform:uppercase;margin-bottom:16px;">Quiz Fan · 3 questions</div>
+
+        <!-- Q1 -->
+        <div class="form-group" id="q1-wrap">
+          <label class="form-label">01 · Comment s'appelle le tout premier titre de Clark Donovan ?</label>
+          <input class="form-input" id="q1" type="text" placeholder="Ta réponse...">
+        </div>
+
+        <!-- Q2 -->
+        <div class="form-group" id="q2-wrap">
+          <label class="form-label">02 · Avec quel artiste Clark Donovan est en featuring sur "PONA" ?</label>
+          <input class="form-input" id="q2" type="text" placeholder="Ta réponse...">
+        </div>
+
+        <!-- Q3 -->
+        <div class="form-group" id="q3-wrap">
+          <label class="form-label">03 · Trouve le titre où l'on retrouve cette phrase :<br><span style="color:rgba(255,255,255,.4);font-style:italic;font-size:11px;">"Les vaincus racontent l'histoire, les vainqueurs l'écrivent."</span></label>
+          <input class="form-input" id="q3" type="text" placeholder="Le titre...">
+        </div>
+
+        <div id="quiz-err" style="font-family:'Space Mono',monospace;font-size:9px;color:#ff4444;letter-spacing:2px;margin-bottom:10px;display:none;"></div>
+
+        <button class="submit-btn" id="quiz-btn" onclick="handleQuiz()" style="margin-bottom:16px;">
+          VALIDER LE QUIZ
+        </button>
+      </div>
+
+      <!-- FORM (affiché après quiz réussi) -->
+      <div id="reg-section" style="display:none;">
+        <div style="font-family:'Space Mono',monospace;font-size:8px;letter-spacing:3px;color:rgba(0,212,255,.4);text-transform:uppercase;margin-bottom:16px;">✓ Quiz réussi — Inscription</div>
+
+        <div class="form-group">
+          <label class="form-label">Ton prénom</label>
+          <input class="form-input" id="inp-prenom" type="text" placeholder="Prénom..." maxlength="40">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Comment te notifier ?</label>
+          <div class="contact-toggle">
+            <button class="toggle-btn active" id="tog-mail" onclick="setMode('mail')">📧 Email</button>
+            <button class="toggle-btn" id="tog-sms" onclick="setMode('sms')">📱 SMS</button>
+          </div>
+          <div id="wrap-mail">
+            <input class="form-input" id="inp-mail" type="email" placeholder="tonmail@gmail.com">
+          </div>
+          <div id="wrap-sms" style="display:none;">
+            <input class="form-input" id="inp-tel" type="tel" placeholder="+33 6 00 00 00 00">
+          </div>
+        </div>
+
+        <div id="err-msg" style="font-family:'Space Mono',monospace;font-size:9px;color:#ff4444;letter-spacing:2px;margin-bottom:10px;display:none;">
+          REMPLIS TOUS LES CHAMPS
+        </div>
+
+        <button class="submit-btn" id="sub-btn" onclick="handleSubmit()">
+          M'INSCRIRE
+        </button>
+      </div>
+
+    </div>
+
+    <div class="success-msg" id="success-box">
+      <div class="success-icon">✓</div>
+      <div class="success-title" id="success-name">C'est bon !</div>
+      <div class="success-sub">Tu seras notifié(e) dès qu'un nouvel extrait est débloqué 🔔</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-artist">CLARK DONOVAN</div>
+    <div class="footer-ep">EP VENI · 24 AVRIL 2026</div>
+  </div>
+
+</div>
+
+<script>
+// ── LASER CANVAS ──
+(function(){
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  let W, H, lasers = [];
+
+  function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+
+  class Laser {
+    constructor(){this.reset();}
+    reset(){
+      this.x  = Math.random()*W;
+      this.y  = -10;
+      this.vx = (Math.random()-.5)*0.4;
+      this.vy = Math.random()*1.2+0.4;
+      this.len= Math.random()*120+60;
+      this.a  = Math.random()*.6+.1;
+      this.w  = Math.random()*1+.3;
+    }
+    update(){ this.x+=this.vx; this.y+=this.vy; if(this.y>H+20)this.reset(); }
+    draw(){
+      const g=ctx.createLinearGradient(this.x,this.y-this.len,this.x,this.y);
+      g.addColorStop(0,'rgba(0,212,255,0)');
+      g.addColorStop(.5,`rgba(0,212,255,${this.a})`);
+      g.addColorStop(1,'rgba(0,100,255,0)');
+      ctx.strokeStyle=g; ctx.lineWidth=this.w;
+      ctx.beginPath(); ctx.moveTo(this.x,this.y-this.len); ctx.lineTo(this.x,this.y);
+      ctx.stroke();
+    }
+  }
+  for(let i=0;i<28;i++) lasers.push(new Laser());
+  (function loop(){ ctx.clearRect(0,0,W,H); lasers.forEach(l=>{l.update();l.draw();}); requestAnimationFrame(loop); })();
+})();
+
+// ── TRACK UNLOCK DATES ──
+const UNLOCKS = [
+  new Date('2026-04-03T00:00:00'),
+  new Date('2026-04-13T00:00:00'),
+  new Date('2026-04-15T00:00:00'),
+];
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function formatCountdown(diff){
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor((diff%86400000)/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  if(d > 0) return `${d}j ${pad(h)}h ${pad(m)}m`;
+  return `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+}
+
+function updateTracks(){
+  const now = new Date();
+  UNLOCKS.forEach((dt, i) => {
+    const card   = document.getElementById(`card-${i}`);
+    const status = document.getElementById(`status-${i}`);
+    const cd     = document.getElementById(`cd-${i}`);
+    const diff   = dt - now;
+    if(diff <= 0){
+      card.classList.remove('locked');
+      card.classList.add('unlocked');
+    } else {
+      card.classList.add('locked');
+      card.classList.remove('unlocked');
+      if(cd) cd.textContent = formatCountdown(diff);
+    }
+  });
+}
+updateTracks();
+setInterval(updateTracks, 1000);
+
+// ── AUDIO PLAYER ──
+let curAudio = null, curBtn = null, curProg = null, curTimer = null, progInt = null;
+
+const PLAY_SVG  = `<polygon points="3,1 15,8 3,15"/>`;
+const PAUSE_SVG = `<rect x="2" y="1" width="5" height="14" rx="1"/><rect x="9" y="1" width="5" height="14" rx="1"/>`;
+
+function stopAll(){
+  if(curAudio){ curAudio.pause(); curAudio.currentTime=0; }
+  if(progInt) clearInterval(progInt);
+  if(curBtn){ curBtn.classList.remove('playing'); document.getElementById(curBtn.id.replace('btn','icon')).innerHTML=PLAY_SVG; }
+  if(curProg) curProg.style.width='0%';
+  if(curTimer) curTimer.textContent='0:00 / 0:30';
+  curAudio=curBtn=curProg=curTimer=null; progInt=null;
+}
+
+function togglePlay(idx, src){
+  const btn   = document.getElementById(`btn-${idx}`);
+  const icon  = document.getElementById(`icon-${idx}`);
+  const prog  = document.getElementById(`prog-${idx}`);
+  const timer = document.getElementById(`timer-${idx}`);
+  if(curBtn===btn){ stopAll(); return; }
+  stopAll();
+  const a = new Audio(src);
+  curAudio=a; curBtn=btn; curProg=prog; curTimer=timer;
+  btn.classList.add('playing');
+  icon.innerHTML=PAUSE_SVG;
+  a.play().catch(()=>{});
+  progInt = setInterval(()=>{
+    const t = Math.min(a.currentTime, 30);
+    const pct = (t/30)*100;
+    prog.style.width = pct+'%';
+    const s = Math.floor(t);
+    timer.textContent = `0:${pad(s)} / 0:30`;
+    if(a.currentTime >= 30 || a.ended){ stopAll(); }
+  }, 200);
+  a.addEventListener('ended', stopAll);
+}
+
+// ── FORM ──
+let mode = 'mail';
+
+function setMode(m){
+  mode = m;
+  document.getElementById('tog-mail').classList.toggle('active', m==='mail');
+  document.getElementById('tog-sms').classList.toggle('active',  m==='sms');
+  document.getElementById('wrap-mail').style.display = m==='mail' ? 'block' : 'none';
+  document.getElementById('wrap-sms').style.display  = m==='sms'  ? 'block' : 'none';
+}
+
+async function handleSubmit(){
+  const prenom = document.getElementById('inp-prenom').value.trim();
+  const contact = mode==='mail'
+    ? document.getElementById('inp-mail').value.trim()
+    : document.getElementById('inp-tel').value.trim();
+  const err = document.getElementById('err-msg');
+  const btn = document.getElementById('sub-btn');
+
+  if(!prenom || !contact){ err.style.display='block'; return; }
+  err.style.display='none';
+  btn.disabled=true;
+  btn.textContent='...';
+
+  // ── Firebase save ──
+  try {
+    if(window._subscribersRef && window._push){
+      await window._push(window._subscribersRef, {
+        prenom, contact, mode, timestamp: Date.now()
+      });
+    }
+  } catch(e){ /* Firebase not configured */ }
+
+  // Show success
+  document.getElementById('form-body').style.display='none';
+  const box = document.getElementById('success-box');
+  box.classList.add('show');
+  document.getElementById('success-name').textContent = `Merci ${prenom} !`;
+}
+
+// ── QUIZ ──
+const ANSWERS = {
+  q1: 'kamutshima',
+  q2: 'gaz mawete',
+  q3: 'victoire',
+};
+
+function normalize(s) {
+  return s.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '');
+}
+
+function handleQuiz() {
+  const a1 = normalize(document.getElementById('q1').value);
+  const a2 = normalize(document.getElementById('q2').value);
+  const a3 = normalize(document.getElementById('q3').value);
+  const err = document.getElementById('quiz-err');
+
+  if (!a1 || !a2 || !a3) {
+    err.textContent = 'RÉPONDS À TOUTES LES QUESTIONS';
+    err.style.display = 'block';
+    return;
+  }
+
+  const wrong = [];
+  if (!a1.includes(normalize(ANSWERS.q1))) wrong.push('01');
+  if (!a2.includes(normalize(ANSWERS.q2))) wrong.push('02');
+  if (!a3.includes(normalize(ANSWERS.q3))) wrong.push('03');
+
+  if (wrong.length > 0) {
+    err.textContent = `❌ MAUVAISE RÉPONSE — QUESTION${wrong.length > 1 ? 'S' : ''} ${wrong.join(', ')}`;
+    err.style.display = 'block';
+    // Highlight wrong fields
+    ['q1','q2','q3'].forEach((id, i) => {
+      const wrap = document.getElementById(`q${i+1}-wrap`);
+      if (wrong.includes(String(i+1).padStart(2,'0'))) {
+        wrap.style.opacity = '.5';
+      }
+    });
+    return;
+  }
+
+  err.style.display = 'none';
+  document.getElementById('quiz-section').style.display = 'none';
+  document.getElementById('reg-section').style.display = 'block';
+}
+
+// ── FIREBASE (optionnel) ──
+// Configure en remplaçant les valeurs ci-dessous
+const FIREBASE_CONFIG = {
+  apiKey: "VOTRE_API_KEY",
+  authDomain: "VOTRE_PROJECT.firebaseapp.com",
+  databaseURL: "https://VOTRE_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "VOTRE_PROJECT",
+};
+
+(async function initFirebase(){
+  try {
+    const { initializeApp }       = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getDatabase, ref, push } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    if(FIREBASE_CONFIG.apiKey === 'VOTRE_API_KEY') return; // Not configured yet
+    const app = initializeApp(FIREBASE_CONFIG);
+    const db  = getDatabase(app);
+    window._subscribersRef = ref(db, 'veni/subscribers');
+    window._scansRef = ref(db, 'veni/scans');
+    window._push = push;
+
+    // Increment scans on load
+    const { runTransaction } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const { onValue } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    runTransaction(window._scansRef, v => (v||0)+1);
+
+    // Live stats
+    onValue(window._scansRef, snap => {
+      const el = document.getElementById('stat-scans');
+      if(el) el.textContent = snap.val() || 0;
+    });
+    onValue(window._subscribersRef, snap => {
+      const el = document.getElementById('stat-inscrits');
+      if(el) el.textContent = snap.exists() ? Object.keys(snap.val()).length : 0;
+    });
+  } catch(e){ /* Firebase not available */ }
+})();
+</script>
+</body>
+</html>
